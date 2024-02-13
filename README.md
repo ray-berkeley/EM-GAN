@@ -21,6 +21,47 @@ Cite : Sai Raghavendra Maddhuri Venkata Subramaniya, Genki Terashi & Daisuke Kih
 
 Google Colab: https://tinyurl.com/3ccxpttx
 
+## Notes on this fork
+
+This fork adds the ability to specify distinct input and output paths so that EM-GAN can be run in batches. An example usage in a pair of SLURM submit and run scripts could be:
+
+```bash
+#!/bin/bash
+
+# Define variables
+FILE_NAME="my_map"
+CONTOUR_LEVEL="0.02"
+
+# Export variables and submit the job script
+sbatch --export=FILE_NAME=$FILE_NAME,CONTOUR_LEVEL=$CONTOUR_LEVEL --job-name=emgan_${FILE_NAME} emgan_submit.sh
+
+# More volumes can be specified below
+```
+```bash
+
+#!/bin/bash
+
+#SBATCH ...
+
+cd /path/to/EM-GAN
+
+module purge
+module load conda
+conda activate emgan
+
+data_prep/HLmapData -a ${SLURM_SUBMIT_DIR}/${FILE_NAME}_aligned_map.mrc -b ${SLURM_SUBMIT_DIR}/${FILE_NAME}_aligned_map.mrc -A ${CONTOUR_LEVEL} -B ${CONTOUR_LEVEL} -w 12 -s 4 > ${SLURM_SUBMIT_DIR}/${FILE_NAME}_trimmap
+
+mkdir ${SLURM_SUBMIT_DIR}/${FILE_NAME}_data_dir
+
+python data_prep/generate_input.py ${SLURM_SUBMIT_DIR}/${FILE_NAME}_trimmap ${FILE_NAME}_data ${SLURM_SUBMIT_DIR}/${FILE_NAME}_data_dir/
+
+python test.py --res_blocks=5 --batch_size=128 --in_channels=32 --G_path=model/G_model --D_path=model/D_model --dir_path=${SLURM_SUBMIT_DIR}/${FILE_NAME}_data_dir/
+
+python sr_dataprep.py ${SLURM_SUBMIT_DIR}/ ${SLURM_SUBMIT_DIR}/${FILE_NAME}_data_dir/
+
+python avg_model.py ${SLURM_SUBMIT_DIR}/${FILE_NAME}_data_dir/
+```
+
 ## About EM-GAN  
 
 An increasing number of biological macromolecules have been solved with cryo-electron microscopy (cryo-EM). Over the past few years, the resolutions of density maps determined by cryo-EM have largely improved in general. However, there are still many cases where the resolution is not high enough to model molecular structures with standard computational tools. If the resolution obtained is near the empirical border line (3 - 4 Å), improvement in the map quality facilitates improved structure modeling. Here, we report that protein structure modeling can often be substantially improved by using a novel deep learning-based method that prepares an input cryo-EM map for modeling. The method uses a three-dimensional generative adversarial network, which learns density patterns of high and low-resolution density maps.   
