@@ -52,7 +52,7 @@ print(len(sr_imageFileNames))
 for f in sr_imageFileNames:
     filename = f.split("/")[-1].split(".")[0]
     key = filename.split("_")[0]
-    idx = int(filename.split("_")[-1])
+    idx = int(filename.split("_")[1])
     if key not in map_mrc:
         ARR = [0] * 12100
         ARR[idx] = f
